@@ -8,7 +8,7 @@ const damp = (a, b, k) => THREE.MathUtils.lerp(a, b, 1 - Math.exp(-k));
 export default class GameManager {
   constructor(canvas, { onSnapshot = () => {} } = {}) {
     this.canvas = canvas; this.onSnapshot = onSnapshot;
-    this.scene = new THREE.Scene(); this.scene.background = new THREE.Color('#071522'); this.scene.fog = new THREE.Fog('#071522', 125, 280);
+    this.scene = new THREE.Scene(); this.scene.background = new THREE.Color('#8bcdeb'); this.scene.fog = new THREE.Fog('#8bcdeb', 155, 340);
     this.camera = new THREE.PerspectiveCamera(56, 1, .1, 420);
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
     this.renderer.outputColorSpace = THREE.SRGBColorSpace; this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -21,7 +21,7 @@ export default class GameManager {
     this.seed = 8217; this.clock = new THREE.Clock(); this.contextLost = false;
     this.particleGeometry = new THREE.SphereGeometry(.08, 5, 4); this.sparkMaterial = new THREE.MeshBasicMaterial({ color: '#ffd166' });
     this.dustMaterial = new THREE.MeshBasicMaterial({ color: '#b7865d', transparent: true, opacity: .65 });
-    this.lighting(); this.ground(); this.measureTrack(); this.track(); this.city(); this.trackDetails();
+    this.lighting(); this.ground(); this.measureTrack(); this.track(); this.city(); this.tropicalLandmarks(); this.trackDetails();
     this.playerCar = this.car('LUNA', '#ff713d', '#ffd166', true);
     this.rivalCars = [this.car('MAX', '#43d8f2', '#e9fbff'), this.car('NIX', '#a886ff', '#ffcf6b')];
     this.pickupsAndHazards(); this.speedLines(); this.placeCars();
@@ -47,19 +47,20 @@ export default class GameManager {
     return { position: this.center(t).addScaledVector(side, lateral), forward, side, yaw: Math.atan2(-forward.x, -forward.z), angle: t };
   }
   lighting() {
-    this.scene.add(new THREE.HemisphereLight('#c9eaff', '#1c2730', 2.1));
-    const sun = new THREE.DirectionalLight('#fff0d4', 3); sun.position.set(-55, 95, -25); sun.castShadow = true;
+    this.scene.add(new THREE.HemisphereLight('#e5f8ff', '#315948', 2.35));
+    const sun = new THREE.DirectionalLight('#fff0ca', 3.2); sun.position.set(-55, 95, -25); sun.castShadow = true;
     sun.shadow.mapSize.set(1024, 1024); sun.shadow.camera.left = -100; sun.shadow.camera.right = 100; sun.shadow.camera.top = 100; sun.shadow.camera.bottom = -100; this.scene.add(sun);
-    const cyan = new THREE.PointLight('#35caff', 40, 90); cyan.position.set(8, 23, 6); this.scene.add(cyan);
-    const amber = new THREE.PointLight('#ff7143', 24, 80); amber.position.set(-35, 16, -12); this.scene.add(amber);
+    const cyan = new THREE.PointLight('#35caff', 20, 72); cyan.position.set(8, 23, 6); this.scene.add(cyan);
+    const amber = new THREE.PointLight('#ff7143', 14, 68); amber.position.set(-35, 16, -12); this.scene.add(amber);
   }
   ground() {
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(520, 520), new THREE.MeshStandardMaterial({ color: '#101e29', roughness: .98 }));
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(520, 520), new THREE.MeshStandardMaterial({ color: '#587760', roughness: .98 }));
     floor.rotation.x = -Math.PI / 2; floor.position.y = -.24; floor.receiveShadow = true; this.scene.add(floor);
-    const grid = new THREE.GridHelper(420, 70, '#244153', '#192f3d'); grid.position.y = -.21; grid.material.transparent = true; grid.material.opacity = .2; this.scene.add(grid);
-    const stars = []; for (let i = 0; i < 330; i += 1) stars.push((this.rand() - .5) * 360, 35 + this.rand() * 90, (this.rand() - .5) * 360);
-    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(stars, 3));
-    this.scene.add(new THREE.Points(geo, new THREE.PointsMaterial({ color: '#b7e8ff', size: .5, transparent: true, opacity: .7 })));
+    const grid = new THREE.GridHelper(420, 70, '#244153', '#192f3d'); grid.position.y = -.21; grid.material.transparent = true; grid.material.opacity = .08; this.scene.add(grid);
+    const cloudGeometry = new THREE.SphereGeometry(1, 10, 7), cloudMaterial = new THREE.MeshStandardMaterial({ color: '#edfaff', roughness: 1, flatShading: true });
+    const clouds = new THREE.InstancedMesh(cloudGeometry, cloudMaterial, 28), cloud = new THREE.Object3D();
+    for (let i = 0; i < 28; i += 1) { cloud.position.set((this.rand() - .5) * 390, 34 + this.rand() * 34, (this.rand() - .5) * 390); cloud.scale.set(7 + this.rand() * 10, 2.4 + this.rand() * 3.5, 5 + this.rand() * 8); cloud.rotation.y = this.rand() * Math.PI; cloud.updateMatrix(); clouds.setMatrixAt(i, cloud.matrix); }
+    clouds.instanceMatrix.needsUpdate = true; this.scene.add(clouds);
   }
   track() {
     const n = 360, verts = [], uv = [], idx = [];
@@ -78,6 +79,9 @@ export default class GameManager {
     const dashGeo = new THREE.BoxGeometry(.16, .045, 2.3), dashMat = new THREE.MeshBasicMaterial({ color: '#c3c6bd', transparent: true, opacity: .64 });
     const dashes = new THREE.InstancedMesh(dashGeo, dashMat, 90), dummy = new THREE.Object3D(); for (let i = 0; i < 90; i += 1) { const d = this.pose(i / 90 * this.lapLength); dummy.position.copy(d.position).setY(.065); dummy.rotation.y = d.yaw; dummy.updateMatrix(); dashes.setMatrixAt(i, dummy.matrix); } dashes.instanceMatrix.needsUpdate = true; this.scene.add(dashes);
     for (let i = 0; i < 12; i += 1) { const tile = new THREE.Mesh(new THREE.BoxGeometry(WIDTH / 12, .055, 1.2), new THREE.MeshStandardMaterial({ color: i % 2 ? '#f4f5ed' : '#f36b3d' })); tile.position.set(RX + (i + .5) * WIDTH / 12 - WIDTH / 2, .07, .04); this.scene.add(tile); }
+    const curbGeo = new THREE.BoxGeometry(1.25, .1, 2.2), redCurbs = new THREE.InstancedMesh(curbGeo, new THREE.MeshStandardMaterial({ color: '#ff6848', roughness: .7 }), 96), whiteCurbs = new THREE.InstancedMesh(curbGeo, new THREE.MeshStandardMaterial({ color: '#fff0d5', roughness: .7 }), 96), curb = new THREE.Object3D();
+    for (let i = 0; i < 96; i += 1) { const p = this.pose(i / 96 * this.lapLength), target = i % 2 ? whiteCurbs : redCurbs; for (const side of [-1, 1]) { curb.position.copy(p.position).addScaledVector(p.side, side * 7.15).setY(.1); curb.rotation.y = p.yaw; curb.updateMatrix(); target.setMatrixAt(i, curb.matrix); } }
+    redCurbs.instanceMatrix.needsUpdate = true; whiteCurbs.instanceMatrix.needsUpdate = true; this.scene.add(redCurbs, whiteCurbs);
     this.startGate();
   }
   startGate() {
@@ -119,6 +123,28 @@ export default class GameManager {
     const core = new THREE.Mesh(new THREE.IcosahedronGeometry(1.45, 1), new THREE.MeshStandardMaterial({ color: '#79f2ff', emissive: '#21b8df', emissiveIntensity: 2, wireframe: true })); core.position.y = 4.8;
     hologram.add(base, ring, core); hologram.position.set(-9, 0, 4); this.scene.add(hologram); this.hologram = core;
   }
+  tropicalLandmarks() {
+    const count = 18, trunkGeo = new THREE.CylinderGeometry(.3, .48, 2.05, 7), leafGeo = new THREE.BoxGeometry(.34, .16, 4.8);
+    const trunks = new THREE.InstancedMesh(trunkGeo, new THREE.MeshStandardMaterial({ color: '#8d5a36', roughness: .95 }), count * 3);
+    const leavesA = new THREE.InstancedMesh(leafGeo, new THREE.MeshStandardMaterial({ color: '#35a66a', roughness: .92, side: THREE.DoubleSide }), count * 8);
+    const leavesB = new THREE.InstancedMesh(leafGeo, new THREE.MeshStandardMaterial({ color: '#78c95c', roughness: .92, side: THREE.DoubleSide }), count * 8);
+    const dummy = new THREE.Object3D(), up = new THREE.Vector3(0, 1, 0), axis = new THREE.Vector3(0, 0, 1); let ti = 0, ai = 0, bi = 0;
+    for (let i = 0; i < count; i += 1) {
+      const t = (i + .35) / count * TAU, side = this.normal(t).multiplyScalar(i % 2 ? -1 : 1);
+      const base = this.center(t).addScaledVector(side, WIDTH / 2 + 11 + this.rand() * 7), lean = side.clone().multiplyScalar(.24 + this.rand() * .18);
+      for (let j = 0; j < 3; j += 1) { const at = base.clone().addScaledVector(lean, (j + .5) / 3).setY((j + .5) * 2.05), axisY = new THREE.Vector3(lean.x / 3, 1, lean.z / 3).normalize(); dummy.position.copy(at); dummy.quaternion.setFromUnitVectors(up, axisY); dummy.updateMatrix(); trunks.setMatrixAt(ti++, dummy.matrix); }
+      const crown = base.clone().addScaledVector(lean, 1.1).setY(6.15);
+      for (let j = 0; j < 8; j += 1) { const angle = j / 8 * TAU, dir = new THREE.Vector3(Math.cos(angle), .28, Math.sin(angle)); dummy.position.copy(crown).addScaledVector(dir, 1.65).add(new THREE.Vector3(0, -.38, 0)); dummy.quaternion.setFromUnitVectors(axis, dir.normalize()); dummy.scale.set(1, 1, .9 + this.rand() * .2); dummy.updateMatrix(); if ((j + i) % 2) leavesA.setMatrixAt(ai++, dummy.matrix); else leavesB.setMatrixAt(bi++, dummy.matrix); }
+    }
+    trunks.count = ti; leavesA.count = ai; leavesB.count = bi; trunks.instanceMatrix.needsUpdate = true; leavesA.instanceMatrix.needsUpdate = true; leavesB.instanceMatrix.needsUpdate = true; this.scene.add(trunks, leavesA, leavesB);
+    const colors = ['#ff5bbd', '#ffd166', '#9b7cff', '#43d8f2'];
+    colors.forEach((color, i) => { const t = (.08 + i * .235) * TAU, side = this.normal(t).multiplyScalar(i % 2 ? -1 : 1), group = new THREE.Group();
+      const stem = new THREE.Mesh(new THREE.CylinderGeometry(.22, .3, 5.2, 10), new THREE.MeshStandardMaterial({ color: '#f4dfc4', roughness: .68 })); stem.position.y = 2.6;
+      const candy = new THREE.Mesh(new THREE.SphereGeometry(2.25, 18, 14), new THREE.MeshStandardMaterial({ color, roughness: .25, metalness: .12, emissive: color, emissiveIntensity: .12 })); candy.position.y = 6.2; candy.scale.set(.92, 1, .35);
+      const stripe = new THREE.Mesh(new THREE.TorusGeometry(1.43, .12, 8, 28), new THREE.MeshBasicMaterial({ color: '#fff2de' })); stripe.position.y = 6.2; stripe.rotation.x = Math.PI / 2; stripe.scale.set(1, .42, 1); group.add(stem, candy, stripe);
+      group.position.copy(this.center(t).addScaledVector(side, WIDTH / 2 + 24)); group.rotation.y = this.pose(this.lapLength * t / TAU).yaw; this.scene.add(group);
+    });
+  }
   trackDetails() {
     const metal = new THREE.MeshStandardMaterial({ color: '#213849', metalness: .72, roughness: .25 });
     for (let i = 0; i < 5; i += 1) {
@@ -137,7 +163,7 @@ export default class GameManager {
       dummy.position.copy(p).setY(.55); dummy.rotation.y = this.pose(i / 96 * this.lapLength).yaw; dummy.updateMatrix(); posts.setMatrixAt(i, dummy.matrix);
       dummy.position.copy(p).setY(.76); dummy.updateMatrix(); (i % 8 < 4 ? stripes : paleStripes).setMatrixAt(i, dummy.matrix);
     }
-    this.scene.add(posts, stripes, paleStripes);
+    posts.instanceMatrix.needsUpdate = true; stripes.instanceMatrix.needsUpdate = true; paleStripes.instanceMatrix.needsUpdate = true; this.scene.add(posts, stripes, paleStripes);
   }
   car(name, color, trimColor, player = false) {
     const root = new THREE.Group();
@@ -149,6 +175,11 @@ export default class GameManager {
     box([2.5, .58, 4.25], [0, .8, 0], body); box([2.32, .18, 3.78], [0, .55, .05], dark);
     box([1.78, .92, 1.9], [0, 1.5, .25], body); box([1.57, .66, .09], [0, 1.55, -.72], glass); box([1.55, .62, .09], [0, 1.55, 1.21], glass);
     box([2.63, .18, .42], [0, .72, -1.82], trim); box([2.85, .14, .2], [0, 1.42, 1.83], dark);
+    box([2.92, .24, .3], [0, .66, -2.16], dark); box([1.18, .16, .38], [0, 1.18, -1.18], trim);
+    const grilleBar = new THREE.MeshStandardMaterial({ color: '#a9bac4', metalness: .72, roughness: .28 });
+    for (let i = 0; i < 5; i += 1) box([.09, .5, .08], [-.42 + i * .21, .96, -2.23], grilleBar);
+    for (const x of [-1.16, 1.16]) for (const z of [-1.35, 1.37]) box([.72, .15, .46], [x, 1.04, z], trim);
+    box([.12, .12, .62], [-.96, .64, .95], dark); box([.12, .12, .62], [.96, .64, .95], dark);
     box([.16, .32, .2], [-1.17, 1.51, -.08], trim); box([.16, .32, .2], [1.17, 1.51, -.08], trim);
     const lamp = new THREE.MeshStandardMaterial({ color: '#fff0b9', emissive: '#ffcf62', emissiveIntensity: 2.2 });
     box([.37, .2, .12], [-.76, .98, -2.13], lamp); box([.37, .2, .12], [.76, .98, -2.13], lamp);
@@ -418,6 +449,10 @@ export default class GameManager {
     this.renderer.dispose();
   }
 }
+
+
+
+
 
 
 
