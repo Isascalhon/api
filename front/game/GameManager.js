@@ -12,8 +12,8 @@ export default class GameManager {
     this.camera = new THREE.PerspectiveCamera(56, 1, .1, 420);
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
     this.renderer.outputColorSpace = THREE.SRGBColorSpace; this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.1; this.renderer.shadowMap.enabled = true; this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    this.renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5)); this.renderer.setSize(canvas.clientWidth || innerWidth, canvas.clientHeight || innerHeight, false);
+    this.renderer.toneMappingExposure = 1.1; this.renderer.shadowMap.enabled = false; this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.15)); this.renderer.setSize(canvas.clientWidth || innerWidth, canvas.clientHeight || innerHeight, false);
     this.audio = new AudioManager(); this.state = 'menu'; this.quality = 'high'; this.keys = new Set(); this.touch = new Set();
     this.raceTime = 0; this.elapsed = 0; this.player = { distance: 0, lateral: -1.9, lateralVelocity: 0, speed: 0, turbo: 100, laps: 0, nextGate: 0, items: 0, score: 0 };
     this.rivals = []; this.finishOrder = []; this.result = null; this.items = []; this.hazards = []; this.particles = [];
@@ -44,7 +44,7 @@ export default class GameManager {
   }
   pose(distance, lateral = 0) {
     const t = distance / this.lapLength * TAU, forward = this.tangent(t), side = this.normal(t);
-    return { position: this.center(t).addScaledVector(side, lateral), forward, side, yaw: Math.atan2(forward.x, -forward.z), angle: t };
+    return { position: this.center(t).addScaledVector(side, lateral), forward, side, yaw: Math.atan2(-forward.x, -forward.z), angle: t };
   }
   lighting() {
     this.scene.add(new THREE.HemisphereLight('#c9eaff', '#1c2730', 2.1));
@@ -89,29 +89,29 @@ export default class GameManager {
   }
   city() {
     const colors = ['#162b3e', '#1c3144', '#253548', '#17334a', '#20303e'], glass = ['#52c9e8', '#f6b84f', '#ff795b'];
-    for (let i = 0; i < 30; i += 1) {
-      const a = (i + this.rand() * .4) / 30 * TAU, rx = RX + 24 + this.rand() * 25, rz = RZ + 21 + this.rand() * 25;
-      const w = 5 + this.rand() * 7, dep = 5 + this.rand() * 8, floors = 3 + Math.floor(this.rand() * 10), h = floors * 2.1;
+    for (let i = 0; i < 12; i += 1) {
+      const a = (i + this.rand() * .4) / 12 * TAU, rx = RX + 24 + this.rand() * 25, rz = RZ + 21 + this.rand() * 25;
+      const w = 5 + this.rand() * 7, dep = 5 + this.rand() * 8, floors = 2 + Math.floor(this.rand() * 4), h = floors * 2.1;
       const group = new THREE.Group(); group.position.set(rx * Math.cos(a), 0, rz * Math.sin(a)); group.lookAt(0, 0, 0);
       const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, dep), new THREE.MeshStandardMaterial({ color: colors[i % colors.length], roughness: .62, metalness: .33, emissive: '#081522', emissiveIntensity: .3 }));
       body.position.y = h / 2; body.castShadow = true; body.receiveShadow = true; group.add(body);
       const roof = new THREE.Mesh(new THREE.BoxGeometry(w + .8, .42, dep + .8), new THREE.MeshStandardMaterial({ color: i % 3 ? '#385164' : '#ef6e43', emissive: i % 3 ? '#0d3043' : '#752914', emissiveIntensity: .4, metalness: .5 }));
       roof.position.y = h + .2; group.add(roof);
       const winMat = new THREE.MeshStandardMaterial({ color: '#76d8f0', emissive: glass[i % glass.length], emissiveIntensity: 1.3, roughness: .25 });
-      for (let row = 0; row < floors; row += 1) for (let col = 0; col < 3; col += 1) {
+      for (let row = 0; row < floors; row += 1) for (let col = 0; col < 2; col += 1) {
         if (this.rand() < .13) continue;
         const win = new THREE.Mesh(new THREE.BoxGeometry(Math.min(.72, w * .16), .82, .09), winMat);
-        win.position.set((col - 1) * w * .29, 1.15 + row * 2.03, dep / 2 + .05); group.add(win);
+        win.position.set((col - .5) * w * .42, 1.15 + row * 2.03, dep / 2 + .05); group.add(win);
       }
       const sign = new THREE.Mesh(new THREE.BoxGeometry(w * .7, .45, .14), new THREE.MeshBasicMaterial({ color: i % 2 ? '#36d0ec' : '#ff743b' }));
       sign.position.set(0, 2.2, dep / 2 + .12); group.add(sign); this.scene.add(group);
     }
-    for (let i = 0; i < 20; i += 1) {
-      const t = i / 20 * TAU, p = this.center(t).addScaledVector(this.normal(t), WIDTH / 2 + 3.2), lamp = new THREE.Group();
+    for (let i = 0; i < 12; i += 1) {
+      const t = i / 12 * TAU, p = this.center(t).addScaledVector(this.normal(t), WIDTH / 2 + 3.2), lamp = new THREE.Group();
       const pole = new THREE.Mesh(new THREE.CylinderGeometry(.11, .17, 5, 8), new THREE.MeshStandardMaterial({ color: '#627483', metalness: .7 })); pole.position.y = 2.5;
       const bulb = new THREE.Mesh(new THREE.BoxGeometry(.72, .24, .48), new THREE.MeshStandardMaterial({ color: '#d2f4ff', emissive: '#43d5ff', emissiveIntensity: 2.2 })); bulb.position.y = 5.05;
       lamp.add(pole, bulb); lamp.position.copy(p); this.scene.add(lamp);
-      if (i % 4 === 0) { const light = new THREE.PointLight('#52d8ff', 8, 15); light.position.copy(p).setY(4.7); this.scene.add(light); }
+      if (i % 6 === 0) { const light = new THREE.PointLight('#52d8ff', 8, 15); light.position.copy(p).setY(4.7); this.scene.add(light); }
     }
     const hologram = new THREE.Group();
     const base = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 3.2, .7, 16), new THREE.MeshStandardMaterial({ color: '#1c3b4d', metalness: .65 })); base.position.y = .3;
@@ -129,12 +129,15 @@ export default class GameManager {
       arch.position.copy(pose.position); arch.rotation.y = pose.yaw; this.scene.add(arch);
     }
     const mat = new THREE.MeshStandardMaterial({ color: '#40515d', metalness: .54, roughness: .42 });
+    const postGeo = new THREE.BoxGeometry(.26, 1.1, .28), stripeGeo = new THREE.BoxGeometry(.3, .2, .31);
+    const posts = new THREE.InstancedMesh(postGeo, mat, 96), stripes = new THREE.InstancedMesh(stripeGeo, new THREE.MeshBasicMaterial({ color: '#ff7541' }), 96);
+    const paleStripes = new THREE.InstancedMesh(stripeGeo, new THREE.MeshBasicMaterial({ color: '#d6e5e8' }), 96), dummy = new THREE.Object3D();
     for (let i = 0; i < 96; i += 1) {
       const p = this.pose(i / 96 * this.lapLength, WIDTH / 2 + .65).position;
-      const post = new THREE.Mesh(new THREE.BoxGeometry(.26, 1.1, .28), mat); post.position.copy(p).setY(.55);
-      const stripe = new THREE.Mesh(new THREE.BoxGeometry(.3, .2, .31), new THREE.MeshBasicMaterial({ color: i % 8 < 4 ? '#ff7541' : '#d6e5e8' })); stripe.position.copy(p).setY(.76);
-      this.scene.add(post, stripe);
+      dummy.position.copy(p).setY(.55); dummy.rotation.y = this.pose(i / 96 * this.lapLength).yaw; dummy.updateMatrix(); posts.setMatrixAt(i, dummy.matrix);
+      dummy.position.copy(p).setY(.76); dummy.updateMatrix(); (i % 8 < 4 ? stripes : paleStripes).setMatrixAt(i, dummy.matrix);
     }
+    this.scene.add(posts, stripes, paleStripes);
   }
   car(name, color, trimColor, player = false) {
     const root = new THREE.Group();
@@ -215,7 +218,7 @@ export default class GameManager {
     const p = this.canvas.parentElement, w = p?.clientWidth || innerWidth, h = p?.clientHeight || innerHeight;
     if (!w || !h) return; this.camera.aspect = w / h; this.camera.updateProjectionMatrix(); this.renderer.setSize(w, h, false);
   }
-  setQuality(value) { this.quality = value; this.renderer.setPixelRatio(value === 'low' ? .85 : Math.min(devicePixelRatio || 1, 1.5)); this.renderer.shadowMap.enabled = value === 'high'; this.resize(); }
+  setQuality(value) { this.quality = value; this.renderer.setPixelRatio(value === 'low' ? .8 : Math.min(devicePixelRatio || 1, 1.15)); this.renderer.shadowMap.enabled = false; this.resize(); }
   setAudio(settings) { this.audio.setVolumes(settings); }
   async startRace() {
     await this.audio.unlock(); this.audio.playTone(520, .13, 'triangle', .12);
@@ -277,7 +280,7 @@ export default class GameManager {
     this.playerCar.userData.flame.visible = boosting; this.playerCar.userData.flameCore.visible = boosting; this.speedLineGroup.visible = boosting && p.speed > 32;
     if (boosting && Math.random() < dt * 26) this.spawn(2, '#62e8ff', this.playerCar.position, .75);
     const steer = Number(c.right) - Number(c.left), factor = clamp(Math.abs(p.speed) / 34, .12, 1), reverse = p.speed < -.2 ? -1 : 1;
-    p.lateralVelocity += steer * factor * reverse * (c.drift ? 10.5 : 6.2) * dt; p.lateralVelocity *= Math.exp(-(c.drift ? 1.05 : 4.25) * dt); p.lateral += p.lateralVelocity * dt;
+    p.lateralVelocity += steer * factor * reverse * (c.drift ? 7.2 : 4.2) * dt; p.lateralVelocity *= Math.exp(-(c.drift ? 2.1 : 6.5) * dt); p.lateralVelocity = clamp(p.lateralVelocity, -4.2, 4.2); p.lateral += p.lateralVelocity * dt;
     if (c.drift && steer && Math.abs(p.speed) > 8 && this.elapsed - this.lastDust > .1) {
       this.lastDust = this.elapsed; this.spawn(1, '#c19065', this.pose(p.distance, p.lateral).position.clone().setY(.4), .7, true);
     }
@@ -288,8 +291,8 @@ export default class GameManager {
     this.crossGate(previous); this.audio.update(Math.abs(p.speed), boosting && this.state === 'racing', this.state === 'racing');
   }
   edgeCollision() {
-    const limit = WIDTH / 2 - .45; if (Math.abs(this.player.lateral) <= limit) return;
-    this.player.lateral = Math.sign(this.player.lateral) * limit; this.player.speed *= .55; this.player.lateralVelocity *= -.32;
+    const limit = WIDTH / 2 - .8; if (Math.abs(this.player.lateral) <= limit) return;
+    this.player.lateral = Math.sign(this.player.lateral) * limit; this.player.speed *= .72; this.player.lateralVelocity = 0;
     if (this.elapsed - this.lastCollision > .48) {
       this.lastCollision = this.elapsed; this.audio.hit(); this.spawn(8, '#ffd166', this.pose(this.player.distance, this.player.lateral).position.clone().setY(.8), 1);
       this.message = 'BATEU NA BARREIRA — segure a pista!'; this.messageLeft = 1.8;
@@ -395,7 +398,7 @@ export default class GameManager {
     const parent = this.canvas.parentElement, w = parent?.clientWidth || innerWidth, h = parent?.clientHeight || innerHeight;
     if (!w || !h) return; this.camera.aspect = w / h; this.camera.updateProjectionMatrix(); this.renderer.setSize(w, h, false);
   }
-  setQuality(value) { this.quality = value; this.renderer.setPixelRatio(value === 'low' ? .85 : Math.min(devicePixelRatio || 1, 1.5)); this.renderer.shadowMap.enabled = value === 'high'; this.resize(); }
+  setQuality(value) { this.quality = value; this.renderer.setPixelRatio(value === 'low' ? .8 : Math.min(devicePixelRatio || 1, 1.15)); this.renderer.shadowMap.enabled = false; this.resize(); }
   setAudio(settings) { this.audio.setVolumes(settings); }
   frame(time) {
     if (!this.clock.running) this.clock.start(); const dt = Math.min(this.clock.getDelta(), .05); if (this.state !== 'paused') this.elapsed += dt;
@@ -415,6 +418,8 @@ export default class GameManager {
     this.renderer.dispose();
   }
 }
+
+
 
 
 
