@@ -1,8 +1,8 @@
 ﻿import './globals.css';
 
 export const metadata = {
-  title: 'EventoSENAI | Agenda escolar',
-  description: 'Descubra eventos e faça sua inscrição.',
+  title: 'TURBO CHAOS — Grande Prêmio',
+  description: 'Acelere. Improvise. Sobreviva ao caos! Uma corrida arcade 3D.',
 };
 
 export default function RootLayout({ children }) {
